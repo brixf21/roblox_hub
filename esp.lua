@@ -1,24 +1,46 @@
+-- Guardar como: esp.lua
 local ESP = {}
 ESP.Enabled = true
+ESP.ShowAllies = true   -- Control independiente de aliados
+ESP.ShowEnemies = true  -- Control independiente de enemigos
+
 local highlights = {}
 
 function ESP.Update(players, localPlayer)
+    if not ESP.Enabled then 
+        for _, hl in pairs(highlights) do hl.Enabled = false end
+        return 
+    end
+
     for _, player in ipairs(players:GetPlayers()) do
-        local hl = highlights[player.UserId]
         local char = player.Character
-        if char and char:FindFirstChild("Head") and char:FindFirstChild("Humanoid") then
+        local head = char and char:FindFirstChild("Head")
+        local hum = char and char:FindFirstChild("Humanoid")
+        
+        if head and hum and hum.Health > 0 then
+            local hl = highlights[player.UserId]
             if not hl then
                 hl = Instance.new("Highlight")
                 hl.Name = "HeadESP"
-                hl.Adornee = char.Head
+                hl.Adornee = head
                 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                hl.FillTransparency = 0.5 -- Uso obligatorio de FillTransparency
-                hl.Parent = char.Head
+                hl.FillTransparency = 0.5 -- Evita error de FillOpacity
+                hl.Parent = head
                 highlights[player.UserId] = hl
             end
-            hl.Enabled = ESP.Enabled and char.Humanoid.Health > 0
-            hl.FillColor = (player.Team == localPlayer.Team) and Color3.new(0,1,0) or Color3.new(1,0,0)
+
+            -- Lógica de filtrado modular por equipo
+            local isAlly = (player.Team == localPlayer.Team)
+            if isAlly then
+                hl.Enabled = ESP.ShowAllies
+                hl.FillColor = Color3.new(0, 1, 0) -- Verde para aliados
+            else
+                hl.Enabled = ESP.ShowEnemies
+                hl.FillColor = Color3.new(1, 0, 0) -- Rojo para enemigos
+            end
             hl.OutlineColor = hl.FillColor
+        elseif highlights[player.UserId] then
+            highlights[player.UserId].Enabled = false
         end
     end
 end
