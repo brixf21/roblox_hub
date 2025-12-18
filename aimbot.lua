@@ -1,55 +1,38 @@
--- Guardar como: aimbot.lua
 local Aimbot = {}
-local Camera = workspace.CurrentCamera
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+Aimbot.Enabled = true
+Aimbot.WallCheck = true
+Aimbot.FOV = 150
+Aimbot.Strength = 0.5
 
--- Parámetros de Raycast para el Wallcheck
+local Camera = workspace.CurrentCamera
 local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Exclude
-rayParams.IgnoreWater = true
 
-_G.Aimbot_Enabled = true
-_G.Wallcheck_Enabled = true -- Por defecto activado (solo apunta si los ve)
-_G.Aim_Strength = 0.5 -- 0.1 (suave) a 1 (instantáneo)
-_G.FOV_Radius = 150
-_G.Is_Aiming = false
-
-function Aimbot.isVisible(targetChar)
-    local head = targetChar:FindFirstChild("Head")
-    if not head then return false end
-    
-    rayParams.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
-    local result = workspace:Raycast(Camera.CFrame.Position, head.Position - Camera.CFrame.Position, rayParams)
-    
-    if result and result.Instance:IsDescendantOf(targetChar) then
-        return true
-    end
-    return result == nil
-end
-
-function Aimbot.GetTarget()
+function Aimbot.GetTarget(players, localPlayer)
     local target = nil
-    local shortestDist = math.huge
+    local minXYZ = math.huge
     local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team then
+    for _, player in ipairs(players:GetPlayers()) do
+        if player ~= localPlayer and player.Team ~= localPlayer.Team then
             local char = player.Character
             local head = char and char:FindFirstChild("Head")
-            local hum = char and char:FindFirstChild("Humanoid")
-
-            if head and hum and hum.Health > 0 then
-                -- Comprobar Wallcheck si está activo
-                if _G.Wallcheck_Enabled and not Aimbot.isVisible(char) then continue end
-                
+            if head and char.Humanoid.Health > 0 then
+                -- Comprobar FOV
                 local sPos, onScreen = Camera:WorldToViewportPoint(head.Position)
                 if onScreen then
                     local mouseDist = (Vector2.new(sPos.X, sPos.Y) - center).Magnitude
-                    if mouseDist <= _G.FOV_Radius then
+                    if mouseDist <= Aimbot.FOV then
+                        -- Comprobar Paredes
+                        if Aimbot.WallCheck then
+                            rayParams.FilterDescendantsInstances = {localPlayer.Character, Camera}
+                            local res = workspace:Raycast(Camera.CFrame.Position, head.Position - Camera.CFrame.Position, rayParams)
+                            if res and not res.Instance:IsDescendantOf(char) then continue end
+                        end
+                        -- Elegir el más cercano por XYZ
                         local distXYZ = (head.Position - Camera.CFrame.Position).Magnitude
-                        if distXYZ < shortestDist then
-                            shortestDist = distXYZ
+                        if distXYZ < minXYZ then
+                            minXYZ = distXYZ
                             target = head
                         end
                     end
