@@ -1,35 +1,23 @@
--- Guardar como: esp.lua
 local ESP = {}
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+ESP.Enabled = true
 local highlights = {}
 
-_G.ESP_Enabled = true
-
-function ESP.Create(player)
-    if player == LocalPlayer then return end
-    local function setup(char)
-        local head = char:WaitForChild("Head", 15)
-        if not head then return end
-        
-        local hl = Instance.new("Highlight")
-        hl.Name = "HeadESP"
-        hl.Adornee = head
-        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        hl.FillTransparency = 0.5 -- Evita el error de FillOpacity
-        hl.Parent = head
-        highlights[player.UserId] = hl
-    end
-    player.CharacterAdded:Connect(setup)
-    if player.Character then setup(player.Character) end
-end
-
-function ESP.Update()
-    for _, player in ipairs(Players:GetPlayers()) do
+function ESP.Update(players, localPlayer)
+    for _, player in ipairs(players:GetPlayers()) do
         local hl = highlights[player.UserId]
-        if hl and player.Character and player.Character:FindFirstChild("Humanoid") then
-            hl.Enabled = _G.ESP_Enabled and player.Character.Humanoid.Health > 0
-            hl.FillColor = (player.Team == LocalPlayer.Team) and Color3.new(0,1,0) or Color3.new(1,0,0)
+        local char = player.Character
+        if char and char:FindFirstChild("Head") and char:FindFirstChild("Humanoid") then
+            if not hl then
+                hl = Instance.new("Highlight")
+                hl.Name = "HeadESP"
+                hl.Adornee = char.Head
+                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                hl.FillTransparency = 0.5 -- Corregido
+                hl.Parent = char.Head
+                highlights[player.UserId] = hl
+            end
+            hl.Enabled = ESP.Enabled and char.Humanoid.Health > 0
+            hl.FillColor = (player.Team == localPlayer.Team) and Color3.new(0,1,0) or Color3.new(1,0,0)
             hl.OutlineColor = hl.FillColor
         end
     end
