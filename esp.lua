@@ -12,7 +12,7 @@ function ESP.Update(players, localPlayer)
                 hl.Name = "HeadESP"
                 hl.Adornee = char.Head
                 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                hl.FillTransparency = 0.5 -- Corregido
+                hl.FillTransparency = 0.5 -- Uso obligatorio de FillTransparency
                 hl.Parent = char.Head
                 highlights[player.UserId] = hl
             end
