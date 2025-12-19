@@ -9,31 +9,44 @@ local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Exclude
 
 function Aimbot.GetTarget(players, localPlayer)
-    if not Aimbot.Enabled then return nil end -- Si está desactivado, no busca objetivos
+    if not Aimbot.Enabled then return nil end 
     
     local target = nil
-    local minXYZ = math.huge
+    -- CAMBIO: Ahora iniciamos con el valor máximo del FOV para encontrar al más cercano al centro
+    local minMouseDist = Aimbot.FOV 
     local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
 
     for _, player in ipairs(players:GetPlayers()) do
         if player ~= localPlayer and player.Team ~= localPlayer.Team then
             local char = player.Character
             local head = char and char:FindFirstChild("Head")
-            if head and char.Humanoid.Health > 0 then
+            local hum = char and char:FindFirstChild("Humanoid")
+
+            -- Validar que el jugador esté vivo y tenga cabeza
+            if head and hum and hum.Health > 0 then
                 local sPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                
                 if onScreen then
+                    -- Calcular distancia en PÍXELES desde el centro de la pantalla
                     local mouseDist = (Vector2.new(sPos.X, sPos.Y) - center).Magnitude
-                    if mouseDist <= Aimbot.FOV then
+                    
+                    -- CAMBIO: Priorizar al que esté más cerca del centro (menor mouseDist)
+                    if mouseDist <= minMouseDist then
+                        
+                        -- Lógica de WallCheck (respetando tu estructura original)
                         if Aimbot.WallCheck then
                             rayParams.FilterDescendantsInstances = {localPlayer.Character, Camera}
                             local res = workspace:Raycast(Camera.CFrame.Position, head.Position - Camera.CFrame.Position, rayParams)
-                            if res and not res.Instance:IsDescendantOf(char) then continue end
+                            
+                            -- Si el rayo golpea algo que no es parte del personaje enemigo, lo ignoramos
+                            if res and not res.Instance:IsDescendantOf(char) then 
+                                continue 
+                            end
                         end
-                        local distXYZ = (head.Position - Camera.CFrame.Position).Magnitude
-                        if distXYZ < minXYZ then
-                            minXYZ = distXYZ
-                            target = head
-                        end
+
+                        -- Actualizar el objetivo al que esté más cerca del centro de la pantalla
+                        minMouseDist = mouseDist
+                        target = head
                     end
                 end
             end
